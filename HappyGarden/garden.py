@@ -42,7 +42,7 @@ def draw():
                 music.stop()
                 finalized = True
             else:
-                screen.draw.text("FANGFLOWER ATTACK-GAME OVER!: " + str(time_elapsed) + " seconds", topleft =(10, 50), color="black")
+                screen.draw.text("FANGFLOWER ATTACK-GAME OVER!: " , topleft =(10, 50), color="black")
                 finalized = True
     return
 
@@ -118,7 +118,7 @@ def mutate():
         fang_flower_list.append(fang_flower)
         fangflower_vx_list.append(fangflower_vx)
         fangflower_vy_list.append(fangflower_vy)
-        clock.schedule(mutate, 20)
+        clock.schedule(mutate, 15)
     return
 
 def velocity():
@@ -160,7 +160,7 @@ wilt_flowers()
 music.play("vanishing-horizon")
 
 def update():
-    global score, game_over, fangflower_collision, flower_list, fang_flower_list, time_elapsed, finalized
+    global score, game_over, fangflower_collision, flower_list, fang_flower_list, time_elapsed
     fangflower_collision = check_fangflower_collision()
     check_wilt_times()
     if not game_over:
