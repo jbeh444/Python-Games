@@ -38,12 +38,12 @@ def draw():
             cow.draw()
             screen.draw.text("Garden happy for: " + str(time_elapsed) + " seconds", topleft =(10, 10), color="black")
             if not garden_happy:
-                screen.draw.text("GARDEN UNHAPPY-GAME OVER!", topleft =(10, 50), color="black")
-                music.stop()
+                screen.draw.text("GARDEN UNHAPPY-GAME OVER!", topleft =(10, 50), color="black")                
                 finalized = True
             else:
                 screen.draw.text("FANGFLOWER ATTACK-GAME OVER!: " , topleft =(10, 50), color="black")
                 finalized = True
+            music.stop()
     return
 
 def new_flower():
@@ -96,7 +96,7 @@ def check_flower_collision():
     return
 
 def check_fangflower_collision():
-    global cow, fang_flower_list, fangflower_collision    
+    global cow, fang_flower_list, fangflower_collision, game_over    
     for fangflower in fang_flower_list:
         if fangflower.colliderect(cow):
             cow.image = "zap"
