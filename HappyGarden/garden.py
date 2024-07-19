@@ -9,6 +9,7 @@ CENTER_Y = HEIGHT / 2
 
 game_over = False
 finalized = False
+raining = False
 garden_happy = True
 fangflower_collision = False
 time_elapsed = 0
@@ -25,7 +26,10 @@ def draw():
     global game_over, time_elapsed, finalized
     if not game_over:
         screen.clear()
-        screen.blit('garden', (0, 0))
+        if not raining:
+            screen.blit('garden', (0, 0))
+        else:
+            screen.blit('garden-raining', (0, 0))
         cow.draw()
         for flower in flower_list:
             flower.draw()
@@ -49,7 +53,7 @@ def draw():
 def new_flower():
     global flower_list, wilted_list
     flower_new = Actor('flower')
-    flower_new.pos = randint(80, WIDTH - 80), randint(170, HEIGHT - 125)
+    flower_new.pos = randint(80, WIDTH - 80), randint(200, HEIGHT - 125)
     flower_list.append(flower_new)
     wilted_list.append("happy")
     return
@@ -63,7 +67,7 @@ def add_flowers():
 
 def wilt_flowers():
     global flower_list, wilted_list, game_over
-    if not game_over:
+    if not game_over and not raining:
         if flower_list:
             rand_flower = randint(0, len(flower_list) - 1)  
             if flower_list[rand_flower].image == 'flower':
@@ -118,7 +122,7 @@ def mutate():
         fang_flower_list.append(fang_flower)
         fangflower_vx_list.append(fangflower_vx)
         fangflower_vy_list.append(fangflower_vy)
-        clock.schedule(mutate, 15)
+        clock.schedule(mutate, 20)
     return
 
 def velocity():
@@ -160,7 +164,7 @@ wilt_flowers()
 music.play("vanishing-horizon")
 
 def update():
-    global score, game_over, fangflower_collision, flower_list, fang_flower_list, time_elapsed
+    global score, game_over, fangflower_collision, flower_list, fang_flower_list, time_elapsed, finalized, garden_happy, raining
     fangflower_collision = check_fangflower_collision()
     check_wilt_times()
     if not game_over:
@@ -170,14 +174,20 @@ def update():
             check_flower_collision()
         if keyboard.left and cow.x > 30:
             cow.x -= 5
-        elif keyboard.right and cow.x < WIDTH - 30:
+        elif keyboard.right and cow.x < WIDTH:
             cow.x += 5
         elif keyboard.up and cow.y > 150:
             cow.y -= 5
-        elif keyboard.down and cow.y < HEIGHT - 40:
+        elif keyboard.down and cow.y < HEIGHT:
             cow.y += 5
-        if time_elapsed > 15 and not fang_flower_list:
+        if time_elapsed > 20 and not fang_flower_list:
             mutate()
         update_fangflowers()
-    
+        if time_elapsed > 20:
+            raining = True
+    # else:
+    #     if game_over and keyboard.space:            
+    #         game_over = False
+    #         finalized = False
+    #         garden_happy = True
 pgzrun.go()
