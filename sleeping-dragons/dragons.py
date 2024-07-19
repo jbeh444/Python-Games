@@ -113,14 +113,14 @@ def update_lairs():
 
 clock.schedule_interval(update_lairs, 1)
 
-def update_sleeping_dragon_lair(lair):
+def update_sleeping_dragon(lair):
     if lair["sleep_counter"] >= lair["sleep_length"]:
         lair["dragon"].image = "dragon-awake"
         lair["sleep_counter"] = 0
     else:
         lair["sleep_counter"] += 1
 
-def update_waking_dragon_lair(lair):
+def update_waking_dragon(lair):
     if lair["wake_counter"] >= DRAGON_WAKE_TIME:
         lair["dragon"].image = "dragon-asleep"
         lair["wake_counter"] = 0
@@ -136,5 +136,39 @@ def update_egg(lair):
             lair["egg_hide_counter"] += 1
 
 def check_for_collisions():
-    pass
+   global lairs, eggs_collected, lives, reset_required, game_complete
+   for lair in lairs:
+        if lair["egg_hidden"] is False:
+           check_for_egg_collision(lair)
+        if lair["dragon"].image == "dragon-awake" and reset_required is False:
+           check_for_dragon_collision(lair)
+
+def check_for_dragon_collision(lair):
+    x_distance = hero.x - lair["dragon"].x
+    y_distance = hero.y - lair["dragon"].y
+    distance = math.hypot(x_distance, y_distance)
+    if distance < ATTACK_DISTANCE:
+        handle_dragon_collision()
+
+def handle_dragon_collision():
+    global reset_required
+    reset_required = True
+    animate(hero, pos=HERO_START, on_finished=subtract_life)
+
+def check_for_egg_collision(lair):
+    global eggs_collected, game_complete
+    if hero.colliderect(lair["eggs"]):
+        lair["egg_hidden"] = True
+        eggs_collected += lair["egg_count"]
+        if eggs_collected >= EGG_TARGET:
+            game_complete = True
+
+def subtract_life():
+    global lives, game_over, reset_required
+    lives -= 1
+    if lives == 0:
+        game_over = True
+    reset_required = False
+
+
 pgzrun.go()
