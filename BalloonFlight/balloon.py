@@ -21,11 +21,12 @@ up = False
 game_over = False
 score = 0
 number_of_updates = 0
+music.play("vanishing-horizon")
 
 scores = []
 def update_high_scores():
     global score, scores
-    filename = r"C:\PythonGame\BalloonFlight\high-scores.txt"
+    filename = r"C:\Users\Jared\Python-Games\BalloonFlight\high-scores.txt"
     scores = []
     with open(filename, "r") as file:
         line = file.readline()
@@ -127,6 +128,7 @@ def update():
          tree.pos = randint(800, 1600), 450
          number_of_updates = 0
          scores = []
+         music.play("vanishing-horizon")
          update_high_scores()
 
 pgzrun.go()
