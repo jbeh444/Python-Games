@@ -166,25 +166,22 @@ def update():
             restart_game()  
 
         if number_of_rocks >= 100:
-           if treasurechest.right > 0:
+            if treasurechest.right > 0:
                 treasurechest.x -= 5
                 for block in placed_blocks[:]:
-                    if treasurechest.colliderect(block["actor"]):
+                    if treasurechest.colliderect(block["actor"]) or treasurechest.x < 0:
                         money += 1000
-                        chest_collected = True
                         treasurechest.pos = (-200, 400)
-                        restart_game() 
-                        break
-                    else:
-                        money += 1000
-                        restart_game()      
+                        restart_game()
+                        break  # Important: stop checking once you've found a collision
+    
 
 
 def place_block(pos):
     global selected_block, woodcount, stoneblockcount, metalblockcount, flagcount
     if selected_block:
         x, y = pos
-        if 0 <= x <= 600 and 303 <= y < 583:
+        if 0 <= x <= 590 and 303 <= y < 583:
             grid_x = (x // 60) * 60 + 30
             grid_y = (y // 60) * 60 + 17
 
