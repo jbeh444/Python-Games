@@ -4,7 +4,12 @@ from random import randint
 WIDTH = 1000
 HEIGHT = 600
 
-
+shop_items = {
+    "wood": {"price": 50},
+    "stone": {"price": 100},
+    "metal": {"price": 500},
+    "flag": {"price": 1000}
+}
 
 shop = Actor("shop")
 shop.pos = 900, 300
@@ -79,6 +84,15 @@ def draw():
             for x in range(60, 301, 60):
                 screen.draw.line((x, 220), (x, 280), color="black")
             
+            # Draw block counts above the menu
+            # Better-aligned block counts above the menu
+            screen.draw.text("Wood: " + str(woodcount), (60, 200), color="black", fontsize=20)
+            screen.draw.text("Stone: " + str(stoneblockcount), (125, 200), color="black", fontsize=20)
+            screen.draw.text("Metal: " + str(metalblockcount), (190, 200), color="black", fontsize=20)
+            screen.draw.text("Flag: " + str(flagcount), (255, 200), color="black", fontsize=20)
+
+
+            
             sail.draw()
             shop.draw()
     else:
@@ -90,6 +104,8 @@ def on_mouse_down(pos, button):
         if button == mouse.LEFT:
             if sail.collidepoint(pos):
                 sail_clicked()
+            elif shop.collidepoint(pos):
+                open_shop_menu()
             elif play.collidepoint(pos) and not sail_clicked_fun:
                 playing = True
             elif woodblock.collidepoint(pos):
@@ -105,7 +121,20 @@ def on_mouse_down(pos, button):
         elif button == mouse.RIGHT:
             delete_block(pos)
 
-
+def open_shop_menu():
+    global money, woodcount, stoneblockcount, metalblockcount, flagcount
+    if selected_block and selected_block in shop_items:
+        cost = shop_items[selected_block]["price"]
+        if money >= cost:
+            money -= cost
+            if selected_block == "wood":
+                woodcount += 1
+            elif selected_block == "stone":
+                stoneblockcount += 1
+            elif selected_block == "metal":
+                metalblockcount += 1
+            elif selected_block == "flag":
+                flagcount += 1
         
         
 def sail_clicked():
