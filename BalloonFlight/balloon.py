@@ -90,9 +90,9 @@ def update():
             bird.x -=4
             if number_of_updates == 9:
                 flap()
-                number_of_updates =0
+                number_of_updates = 0
             else:
-                number_of_updates +=1
+                number_of_updates += 1
         else:
             bird.x = randint(800,1600)
             bird.y = randint(10,100)
