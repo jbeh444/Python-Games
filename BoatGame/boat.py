@@ -204,7 +204,7 @@ def sail_clicked():
         
 def update():
     global rock, number_of_rocks, treasurechest, sail_clicked_fun, money, music_playing, sail_clicked_fun
-    global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks   
+    global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks, money   
     load_game()  # Load game state at the start 
     if sail_clicked_fun:
         if rock.right > 0:        
@@ -260,14 +260,17 @@ def update():
             if treasurechest.right > 0:
                 treasurechest.x -= 5
                 for block in placed_blocks[:]:
-                    if treasurechest.colliderect(block["actor"]) or treasurechest.x < 0:
+                    if treasurechest.colliderect(block["actor"]):
                         money += 1000
                         treasurechest.pos = (-200, 400)
                         restart_game()
-                        break  # Important: stop checking once you've found a collision
-    
-
-
+                        break
+                else:
+                    if treasurechest.left < 0:
+                        money += 1000
+                        treasurechest.pos = (-200, 400)
+                        restart_game()
+                        
 def place_block(pos):
     global selected_block, woodcount, stoneblockcount, metalblockcount, flagcount, placedwood, placedstone, placedmetal, placedflagcount
     if selected_block:
