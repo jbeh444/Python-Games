@@ -66,7 +66,7 @@ load_game_once = False
 # ----------------------------
 # Inventory & Gameplay Stats
 # ----------------------------
-number_of_rocks = 0 #set to zero whenrunning the game for the first time
+number_of_rocks = 99 #set to zero whenrunning the game for the first time
 money = 0
 woodcount = 5
 placedwood = 0
