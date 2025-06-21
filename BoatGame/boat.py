@@ -1,5 +1,7 @@
 import pgzrun
 from random import randint
+import json
+import os
 
 # ----------------------------
 # Window Settings
@@ -199,6 +201,7 @@ def sail_clicked():
 def update():
     global rock, number_of_rocks, treasurechest, sail_clicked_fun, money, music_playing, sail_clicked_fun
     global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks
+    load_game()  # Load game state at the start
     if sail_clicked_fun:
         if rock.right > 0:        
             rock.x -= 5
@@ -331,10 +334,44 @@ def restart_game():
     sail_clicked_fun = False
     music_playing = False    
     missed_rocks = 0
-    rock.x = 1600 # Reset rock position   
+    rock.x = 1600 # Reset rock position  
+    save_game()  # Save the game state before restarting 
     music.stop() # type: ignore  # noqa: F821
     # Optionally reset block counts too:
     
+def save_game():
+    data = {
+        "wood": woodcount,
+        "stone": stoneblockcount,
+        "metal": metalblockcount,
+        "flag": flagcount,
+        "money": money
+    }
+    with open("save_data.json", "w") as f:
+        json.dump(data, f)
 
+def load_game():
+    global woodcount, stoneblockcount, metalblockcount, flagcount, money
+    try:
+        with open("save_data.json", "r") as f:
+            data = json.load(f)
+            woodcount = data.get("wood", 0)
+            stoneblockcount = data.get("stone", 0)
+            metalblockcount = data.get("metal", 0)
+            flagcount = data.get("flag", 0)
+            money = data.get("money", 0)
+    except FileNotFoundError:
+        pass  # No save file yet
+    
+def delete_save():
+    try:
+        os.remove("save_data.json")
+        print("Save file deleted.")
+    except FileNotFoundError:
+        print("No save file to delete.")
+
+def on_key_down(key):
+    if key == keys.R:  # Press R to reset # type: ignore  # noqa: F821
+        delete_save()
 
 pgzrun.go()
