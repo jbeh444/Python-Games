@@ -50,7 +50,7 @@ flag.pos = 270, 250
 
 # Game Objects
 rock = Actor("rock")       # type: ignore  # noqa: F821
-rock.pos = 1600, randint(350, 550)
+rock.pos = 1100, randint(350, 550)
 
 treasurechest = Actor("tresurechest")  # type: ignore  # noqa: F821
 treasurechest.pos = 1600, 400
@@ -62,7 +62,7 @@ sail_clicked_fun = False
 music_playing = False
 flagplaced = False
 playing = False
-shop_open = False
+load_game_once = False
 # ----------------------------
 # Inventory & Gameplay Stats
 # ----------------------------
@@ -200,8 +200,8 @@ def sail_clicked():
         
 def update():
     global rock, number_of_rocks, treasurechest, sail_clicked_fun, money, music_playing, sail_clicked_fun
-    global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks
-    load_game()  # Load game state at the start
+    global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks   
+    # load_game()  # Load game state at the start 
     if sail_clicked_fun:
         if rock.right > 0:        
             rock.x -= 5
@@ -220,7 +220,7 @@ def update():
                             flagcount += 1
                         placed_blocks.remove(block)
                     # Rock hit something, reset
-                    rock.x = 1600
+                    rock.x = 1100
                     rock.y = randint(350, 550)
                     number_of_rocks += 1
                     missed_rocks = 0
@@ -228,7 +228,7 @@ def update():
                     break
         else:
             # Rock missed everything, still reset!
-            rock.x = 1600
+            rock.x = 1100
 
             if missed_rocks >= 2:
                 # Try upper and lower positions alternately
@@ -334,44 +334,48 @@ def restart_game():
     sail_clicked_fun = False
     music_playing = False    
     missed_rocks = 0
-    rock.x = 1600 # Reset rock position  
-    save_game()  # Save the game state before restarting 
+    rock.x = 1100 # Reset rock position  
+    # save_game()  # Save the game state before restarting 
     music.stop() # type: ignore  # noqa: F821
     # Optionally reset block counts too:
     
-def save_game():
-    data = {
-        "wood": woodcount,
-        "stone": stoneblockcount,
-        "metal": metalblockcount,
-        "flag": flagcount,
-        "money": money
-    }
-    with open("save_data.json", "w") as f:
-        json.dump(data, f)
+# def save_game():
+#     global woodcount, stoneblockcount, metalblockcount, flagcount, money
+#     data = {
+#         "wood": woodcount,
+#         "stone": stoneblockcount,
+#         "metal": metalblockcount,
+#         "flag": flagcount,
+#         "money": money
+#     }
+#     with open("save_data.json", "w") as f:
+#         json.dump(data, f)
 
-def load_game():
-    global woodcount, stoneblockcount, metalblockcount, flagcount, money
-    try:
-        with open("save_data.json", "r") as f:
-            data = json.load(f)
-            woodcount = data.get("wood", 0)
-            stoneblockcount = data.get("stone", 0)
-            metalblockcount = data.get("metal", 0)
-            flagcount = data.get("flag", 0)
-            money = data.get("money", 0)
-    except FileNotFoundError:
-        pass  # No save file yet
+# def load_game():
+#     global woodcount, stoneblockcount, metalblockcount, flagcount, money, load_game_once
+#     if not load_game_once:
+#         load_game_once = True
+#         try:
+#             with open("save_data.json", "r") as f:
+#                 data = json.load(f)
+#                 woodcount = data.get("wood", 0)
+#                 stoneblockcount = data.get("stone", 0)
+#                 metalblockcount = data.get("metal", 0)
+#                 flagcount = data.get("flag", 0)
+#                 money = data.get("money", 0)
+#         except FileNotFoundError:
+#             pass  # No save file yet
+        
     
-def delete_save():
-    try:
-        os.remove("save_data.json")
-        print("Save file deleted.")
-    except FileNotFoundError:
-        print("No save file to delete.")
+# def delete_save():
+#     try:
+#         os.remove("save_data.json")
+#         print("Save file deleted.")
+#     except FileNotFoundError:
+#         print("No save file to delete.")
 
-def on_key_down(key):
-    if key == keys.R:  # Press R to reset # type: ignore  # noqa: F821
-        delete_save()
+# def on_key_down(key):
+#     if key == keys.R:  # Press R to reset # type: ignore  # noqa: F821
+#         delete_save()
 
 pgzrun.go()
