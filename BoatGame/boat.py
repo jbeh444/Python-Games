@@ -260,6 +260,7 @@ def update():
         if number_of_rocks >= 100:
             if treasurechest.right > 0:
                 treasurechest.x -= 5
+                rock.x = 1600 # Reset rock position
                 # Check if the treasure chest collides with any placed blocks
                 for block in placed_blocks[:]:
                     if treasurechest.colliderect(block["actor"]):
