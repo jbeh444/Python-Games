@@ -91,10 +91,10 @@ def draw():
     if playing:
         if sail_clicked_fun and music_playing: 
             if number_of_rocks >= 100:
-                treasurechest.draw()      
+                treasurechest.draw()   #draw treasure chest   
             else:
-                rock.draw()
-                exit.draw()
+                rock.draw() #draw rock
+                exit.draw() #draw exit button
             for block in placed_blocks:
                 block["actor"].draw()
 
@@ -205,7 +205,8 @@ def sail_clicked():
 def update():
     global rock, number_of_rocks, treasurechest, sail_clicked_fun, money, music_playing, sail_clicked_fun
     global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks, money   
-    load_game()  # Load game state at the start 
+    if not load_game_once:
+        load_game()  # Load game state at the start 
     if sail_clicked_fun:
         if rock.right > 0:        
             rock.x -= 5
@@ -259,12 +260,14 @@ def update():
         if number_of_rocks >= 100:
             if treasurechest.right > 0:
                 treasurechest.x -= 5
+                # Check if the treasure chest collides with any placed blocks
                 for block in placed_blocks[:]:
                     if treasurechest.colliderect(block["actor"]):
                         money += 1000
                         treasurechest.pos = (-200, 400)
                         restart_game()
                         break
+                
                 else:
                     if treasurechest.left < 0:
                         money += 1000
@@ -350,6 +353,7 @@ def restart_game():
     music_playing = False    
     missed_rocks = 0
     rock.x = 1100 # Reset rock position  
+    treasurechest.pos = (1600, 400)  # Reset treasure chest position
     save_game()  # Save the game state before restarting 
     music.stop() # type: ignore  # noqa: F821
     # Optionally reset block counts too:
@@ -367,19 +371,18 @@ def save_game():
         json.dump(data, f)
 
 def load_game():
-    global woodcount, stoneblockcount, metalblockcount, flagcount, money, load_game_once, placedwood, placedstone, placedmetal, placedflagcount
-    if not load_game_once:
-        load_game_once = True
-        try:
-            with open("save_data.json", "r") as f:
-                data = json.load(f)
-                woodcount = data.get("wood", 0)
-                stoneblockcount = data.get("stone", 0)
-                metalblockcount = data.get("metal", 0)
-                flagcount = data.get("flag", 0)
-                money = data.get("money", 0)
-        except FileNotFoundError:
-            pass  # No save file yet
+    global woodcount, stoneblockcount, metalblockcount, flagcount, money, load_game_once, placedwood, placedstone, placedmetal, placedflagcount    
+    load_game_once = True
+    try:
+        with open("save_data.json", "r") as f:
+            data = json.load(f)
+            woodcount = data.get("wood", 0)
+            stoneblockcount = data.get("stone", 0)
+            metalblockcount = data.get("metal", 0)
+            flagcount = data.get("flag", 0)
+            money = data.get("money", 0)
+    except FileNotFoundError:
+        pass  # No save file yet
         
     
 def delete_save():
