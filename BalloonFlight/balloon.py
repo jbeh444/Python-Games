@@ -4,16 +4,16 @@ from random import randint
 WIDTH = 800
 HEIGHT = 600
 
-balloon = Actor("balloon")
+balloon = Actor("balloon") # type: ignore  # noqa: F821
 balloon.pos = 400, 300
 
-bird = Actor("bird-up")
+bird = Actor("bird-up") # type: ignore  # noqa: F821
 bird.pos = randint(800, 1600), randint(10, 100)
 
-house = Actor("house")
+house = Actor("house") # type: ignore  # noqa: F821
 house.pos = randint(800, 1600), 460
 
-tree = Actor("tree")
+tree = Actor("tree") # type: ignore  # noqa: F821
 tree.pos = randint(800, 1600), 450
 
 bird_up = True
@@ -21,7 +21,7 @@ up = False
 game_over = False
 score = 0
 number_of_updates = 0
-music.play("vanishing-horizon")
+music.play("vanishing-horizon") # type: ignore  # noqa: F821
 
 scores = []
 def update_high_scores():
@@ -42,23 +42,23 @@ def update_high_scores():
             file.write(high_score)
 
 def display_high_scores():
-    screen.draw.text("HIGH SCORES", (350, 150), color="black")
+    screen.draw.text("HIGH SCORES", (350, 150), color="black") # type: ignore  # noqa: F821
     y = 175
     position = 1
     for high_score in scores:
-        screen.draw.text(str(position) + ". " + high_score, (350, y), color="black")
+        screen.draw.text(str(position) + ". " + high_score, (350, y), color="black") # type: ignore  # noqa: F821
         y += 25
         position += 1
-    screen.draw.text("Press spacebar to play again", (350, y+25), color="black")
+    screen.draw.text("Press spacebar to play again", (350, y+25), color="black") # type: ignore  # noqa: F821
 
 def draw():
-    screen.blit("background", (0, 0))
+    screen.blit("background", (0, 0)) # type: ignore  # noqa: F821
     if not game_over:
         balloon.draw()
         bird.draw()
         house.draw()
         tree.draw()
-        screen.draw.text("Score: " + str(score), (700, 10), color="black")
+        screen.draw.text("Score: " + str(score), (700, 10), color="black") # type: ignore  # noqa: F821
     else:
         # screen.draw.text("Game Over", (350, 200), color="black")
         display_high_scores()
@@ -119,7 +119,7 @@ def update():
             game_over = True
             update_high_scores()
 
-    if game_over and keyboard.space:
+    if game_over and keyboard.space: # type: ignore  # noqa: F821
          game_over = False
          score = 0
          balloon.pos = 400, 300
@@ -128,7 +128,7 @@ def update():
          tree.pos = randint(800, 1600), 450
          number_of_updates = 0
          scores = []
-         music.play("vanishing-horizon")
+         music.play("vanishing-horizon") # type: ignore  # noqa: F821
          update_high_scores()
 
 pgzrun.go()
