@@ -59,14 +59,19 @@ rugblock.pos = 390, 250
 # Game Objects
 # Level 1
 rock = Actor("rock")       # type: ignore  # noqa: F821
-rock.pos = 1100, randint(350, 550)
+rx = 1100
+ry = randint(350, 550)
+rock.pos = rx, ry
 
 #level 2 
 rock2 = Actor("rock2")  # type: ignore  # noqa: F821
-rock2.pos = 1500, randint(390, 550)
-
+r2x = 1500
+r2y = randint(390, 550)
+rock2.pos = r2x, r2y
 meteor = Actor("meteor")  # type: ignore  # noqa: F821
-meteor.pos = randint(600, 1000), -100
+mx = randint(300, 1000)
+my = -600
+meteor.pos = mx, my
 
 #End of level
 treasurechest = Actor("tresurechest")  # type: ignore  # noqa: F821
@@ -255,7 +260,7 @@ def sail_clicked():
         
 def update():
     global rock, number_of_rocks, treasurechest, sail_clicked_fun, money, music_playing, sail_clicked_fun
-    global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks, money 
+    global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks, money, placedrug, placedobsidian
     global load_game_once, placedwood, placedstone, placedmetal, placedflagcount, obsidianblockcount, rugblockcount, level, rock2, meteor 
     if not load_game_once:
         load_game()  # Load game state at the start 
@@ -387,15 +392,15 @@ def update():
                                 placedrug -= 1
                             placed_blocks.remove(block)
                         # Rock hit something, reset
-                        meteor.pos = (randint(600, 1000), -100)
+                        meteor.pos = (randint(300, 1000), -300)
                         number_of_rocks += 1
                         missed_rocks = 0
                         money += 24
                         break
             else:
-                meteor.pos = (randint(600, 1000), -100)
+                meteor.pos = (randint(300, 1000), -300)
                 number_of_rocks += 1
-                money += 24 
+                money += 16 
                 
          # Check if the flag is broken
         flag_broken = not any(block["type"] == "flag" for block in placed_blocks)
@@ -410,6 +415,8 @@ def update():
             if treasurechest.right > 0:
                 treasurechest.x -= 5
                 rock.x = 1600 # Reset rock position
+                rock2.x = 1600
+                meteor.y= -300
                 # Check if the treasure chest collides with any placed blocks
                 for block in placed_blocks[:]:
                     if treasurechest.colliderect(block["actor"]):
@@ -528,6 +535,7 @@ def restart_game():
     missed_rocks = 0
     rock2.x = 1500  # Reset rock2 position
     rock.x = 1100 # Reset rock position  
+    meteor.pos = mx, my  # Reset meteor position
     treasurechest.pos = (1600, 400)  # Reset treasure chest position
     save_game()  # Save the game state before restarting 
     music.stop() # type: ignore  # noqa: F821
