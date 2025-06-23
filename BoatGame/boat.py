@@ -16,7 +16,9 @@ shop_items = {
     "wood": {"price": 50},
     "stone": {"price": 100},
     "metal": {"price": 500},
-    "flag": {"price": 1000}
+    "flag": {"price": 1000},
+    "obsidian": {"price": 2000},
+    "rug": {"price": 100}
 }
 
 # ----------------------------
@@ -48,10 +50,25 @@ metalblock.pos = 210, 250
 flag = Actor("flag")       # type: ignore  # noqa: F821
 flag.pos = 270, 250
 
+obsidianblock = Actor("obsidianblock")  # type: ignore  # noqa: F821
+obsidianblock.pos = 330, 250
+
+rugblock = Actor("rugblock")  # type: ignore  # noqa: F821
+rugblock.pos = 390, 250
+
 # Game Objects
+# Level 1
 rock = Actor("rock")       # type: ignore  # noqa: F821
 rock.pos = 1100, randint(350, 550)
 
+#level 2 
+rock2 = Actor("rock2")  # type: ignore  # noqa: F821
+rock2.pos = 1500, randint(390, 550)
+
+meteor = Actor("meteor")  # type: ignore  # noqa: F821
+meteor.pos = randint(600, 1000), -100
+
+#End of level
 treasurechest = Actor("tresurechest")  # type: ignore  # noqa: F821
 treasurechest.pos = 1600, 400
 
@@ -63,6 +80,7 @@ music_playing = False
 flagplaced = False
 playing = False
 load_game_once = False
+level = 1
 # ----------------------------
 # Inventory & Gameplay Stats
 # ----------------------------
@@ -76,6 +94,10 @@ metalblockcount = 1
 placedmetal = 0
 flagcount = 1
 placedflagcount = 0
+obsidianblockcount = 0
+placedobsidian = 0  
+rugblockcount = 2
+placedrug = 0
 missed_rocks = 0
 
 # ----------------------------
@@ -95,6 +117,8 @@ def draw():
             else:
                 rock.draw() #draw rock
                 exit.draw() #draw exit button
+                if level >1:
+                    rock2.draw()
             for block in placed_blocks:
                 block["actor"].draw()
 
@@ -106,9 +130,12 @@ def draw():
             stoneblock.draw()
             metalblock.draw()
             flag.draw()
+            obsidianblock.draw()
+            rugblock.draw()           
+            
             for block in placed_blocks:
-                block["actor"].draw()
-
+                block["actor"].draw()           
+            
             screen.draw.text("Money: " + str(money), (850, 520), color="black") # type: ignore  # noqa: F821
                      
             # Draw horizontal grid lines
@@ -120,27 +147,42 @@ def draw():
                 screen.draw.line((x, 286), (x, 586), color="black") # type: ignore  # noqa: F821
 
             # Build menu horizontal lines
-            screen.draw.line((60, 220), (300, 220), color="black") # type: ignore  # noqa: F821
-            screen.draw.line((60, 280), (300, 280), color="black") # type: ignore  # noqa: F821
-
+            screen.draw.line((60, 220), (420, 220), color="black") # type: ignore  # noqa: F821
+            screen.draw.line((60, 280), (420, 280), color="black") # type: ignore  # noqa: F821            
+            
             # Build menu vertical dividers
-            for x in range(60, 301, 60):
+            for x in range(60, 421, 60):
                 screen.draw.line((x, 220), (x, 280), color="black") # type: ignore  # noqa: F821
             
+            
            # Prices
-            screen.draw.text("Press shop to buy selected block", (60, 160), color="black", fontsize=18) # type: ignore  # noqa: F821
-            screen.draw.text("50$", (70, 180), color="black", fontsize=18) # type: ignore  # noqa: F821
-            screen.draw.text("100$", (130, 180), color="black", fontsize=18) # type: ignore  # noqa: F821
-            screen.draw.text("500$", (190, 180), color="black", fontsize=18) # type: ignore  # noqa: F821
-            screen.draw.text("1000$", (255, 180), color="black", fontsize=18) # type: ignore  # noqa: F821
+            screen.draw.text("Press shop to buy selected block", (60, 140), color="black", fontsize=18) # type: ignore  # noqa: F821
+            screen.draw.text("$50", (80, 200), color="black", fontsize=18) # type: ignore  # noqa: F821
+            screen.draw.text("$100", (136, 200), color="black", fontsize=18) # type: ignore  # noqa: F821
+            screen.draw.text("$500", (193, 200), color="black", fontsize=18) # type: ignore  # noqa: F821
+            screen.draw.text("$1000", (250, 200), color="black", fontsize=18) # type: ignore  # noqa: F821
+            screen.draw.text("$2000", (310, 200), color="black", fontsize=18) # type: ignore  # noqa: F821
+            screen.draw.text("$100", (373, 200), color="black", fontsize=18) # type: ignore  # noqa: F821
 
             # Counts
-            screen.draw.text("Wood: " + str(woodcount), (60, 200), color="black", fontsize=20) # type: ignore  # noqa: F821
-            screen.draw.text("Stone: " + str(stoneblockcount), (125, 200), color="black", fontsize=20) # type: ignore  # noqa: F821
-            screen.draw.text("Metal: " + str(metalblockcount), (190, 200), color="black", fontsize=20) # type: ignore  # noqa: F821
-            screen.draw.text("Flag: " + str(flagcount), (255, 200), color="black", fontsize=20) # type: ignore  # noqa: F821
-
+            screen.draw.text("Wood:", (70, 160), color="black", fontsize=20) # type: ignore  # noqa: F821
+            screen.draw.text(str(woodcount), (83, 180), color="black", fontsize=20) # type: ignore  # noqa: F821
             
+            screen.draw.text("Stone:", (130, 160), color="black", fontsize=20) # type: ignore  # noqa: F821
+            screen.draw.text(str(stoneblockcount), (145, 180), color="black", fontsize=20) # type: ignore  # noqa: F821
+            
+            screen.draw.text("Metal:", (190, 160), color="black", fontsize=20) # type: ignore  # noqa: F821
+            screen.draw.text(str(metalblockcount), (200, 180), color="black", fontsize=20) # type: ignore  # noqa: F821
+            
+            screen.draw.text("Flag:", (255, 160), color="black", fontsize=20) # type: ignore  # noqa: F821
+            screen.draw.text(str(flagcount), (260, 180), color="black", fontsize=20) # type: ignore  # noqa: F821
+            
+            screen.draw.text("Obsidian:", (300, 160), color="black", fontsize=20) # type: ignore  # noqa: F821
+            screen.draw.text(str(obsidianblockcount), (325, 180), color="black", fontsize=20) # type: ignore  # noqa: F821
+            
+            screen.draw.text("Rug:", (375, 160), color="black", fontsize=20) # type: ignore  # noqa: F821
+            screen.draw.text(str(rugblockcount), (385, 180), color="black", fontsize=20) # type: ignore  # noqa: F821
+
             sail.draw()
             shop.draw()
     else:
@@ -165,14 +207,18 @@ def on_mouse_down(pos, button):
             elif metalblock.collidepoint(pos):
                 selected_block = "metal"
             elif flag.collidepoint(pos):
-                selected_block = "flag"            
+                selected_block = "flag"    
+            elif obsidianblock.collidepoint(pos):
+                selected_block = "obsidian"
+            elif rugblock.collidepoint(pos):
+                selected_block = "rug"
             else:
                 place_block(pos)
         elif button == mouse.RIGHT: # type: ignore  # noqa: F821
             delete_block(pos)
 
 def open_shop_menu():
-    global money, woodcount, stoneblockcount, metalblockcount, flagcount   
+    global money, woodcount, stoneblockcount, metalblockcount, flagcount, obsidianblockcount, rugblockcount
     if selected_block and selected_block in shop_items:
         cost = shop_items[selected_block]["price"]
         if money >= cost:
@@ -185,6 +231,10 @@ def open_shop_menu():
                 metalblockcount += 1
             elif selected_block == "flag":
                 flagcount += 1
+            elif selected_block == "obsidian":
+                obsidianblockcount += 1 
+            elif selected_block == "rug":
+                rugblockcount += 1
         
         
 def sail_clicked():
@@ -204,12 +254,15 @@ def sail_clicked():
         
 def update():
     global rock, number_of_rocks, treasurechest, sail_clicked_fun, money, music_playing, sail_clicked_fun
-    global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks, money   
+    global placed_blocks, flagplaced, flagcount, woodcount, stoneblockcount, metalblockcount, missed_rocks, money 
+    global load_game_once, placedwood, placedstone, placedmetal, placedflagcount, obsidianblockcount, rugblockcount, level, rock2, meteor 
     if not load_game_once:
         load_game()  # Load game state at the start 
     if sail_clicked_fun:
+        
         if rock.right > 0:        
             rock.x -= 5
+            
             for block in placed_blocks[:]:
                 if rock.colliderect(block["actor"]):
                     block["health"] -= 1
@@ -223,6 +276,10 @@ def update():
                             metalblockcount += 1
                         elif block["type"] == "flag":
                             flagcount += 1
+                        elif block["type"] == "obsidian":
+                            obsidianblockcount += 1
+                        elif block["type"] == "rug":
+                            rugblockcount += 1
                         placed_blocks.remove(block)
                     # Rock hit something, reset
                     rock.x = 1100
@@ -247,7 +304,48 @@ def update():
             number_of_rocks += 1
             missed_rocks += 1
             money += 8
+            
+        if level > 1:
+            if rock2.right > 0:
+                rock2.x -= 5
+                for block in placed_blocks[:]:
+                    if rock2.colliderect(block["actor"]):
+                        block["health"] -= 2
+                        if block["health"] <= 0:
+                            # Refill the count based on block type
+                            if block["type"] == "wood":
+                                woodcount += 1
+                            elif block["type"] == "stone":
+                                stoneblockcount += 1
+                            elif block["type"] == "metal":
+                                metalblockcount += 1
+                            elif block["type"] == "flag":
+                                flagcount += 1
+                            elif block["type"] == "obsidian":
+                                obsidianblockcount += 1
+                            elif block["type"] == "rug":
+                                rugblockcount += 1
+                            placed_blocks.remove(block)
+                        # Rock hit something, reset
+                        rock2.x = 1500
+                        rock2.y = randint(390, 550)
+                        number_of_rocks += 1
+                        missed_rocks = 0
+                        money += 16
+                        break
+            else:
+                # Rock missed everything, still reset!
+                rock2.x = 1500
 
+                if missed_rocks >= 2:
+                    # Try upper and lower positions alternately
+                    if missed_rocks == 2:
+                        rock2.y = 390  # Upper range
+                    else:
+                        rock2.y = 550  # Lower range
+                else:   
+                    rock2.y = randint(390, 550)
+            
          # Check if the flag is broken
         flag_broken = not any(block["type"] == "flag" for block in placed_blocks)
 
@@ -265,6 +363,7 @@ def update():
                 for block in placed_blocks[:]:
                     if treasurechest.colliderect(block["actor"]):
                         money += 1000
+                        level += 1
                         treasurechest.pos = (-200, 400)
                         restart_game()
                         break
@@ -272,11 +371,14 @@ def update():
                 else:
                     if treasurechest.left < 0:
                         money += 1000
+                        level += 1
                         treasurechest.pos = (-200, 400)
                         restart_game()
                         
 def place_block(pos):
     global selected_block, woodcount, stoneblockcount, metalblockcount, flagcount, placedwood, placedstone, placedmetal, placedflagcount
+    global placed_blocks, obsidianblockcount, rugblockcount
+    global health, placedobsidian, placedrug
     if selected_block:
         x, y = pos
         if 0 <= x <= 590 and 303 <= y < 583:
@@ -306,6 +408,14 @@ def place_block(pos):
                 new_block = Actor("flag") # type: ignore  # noqa: F821
                 flagcount -= 1
                 placedflagcount += 1
+            elif selected_block == "obsidian" and obsidianblockcount > 0:
+                new_block = Actor("obsidianblock") # type: ignore  # noqa: F821
+                obsidianblockcount -= 1
+                placedobsidian += 1
+            elif selected_block == "rug" and rugblockcount > 0:
+                new_block = Actor("rugblock") # type: ignore  # noqa: F821
+                rugblockcount -= 1
+                placedrug += 1
 
             if new_block:
                 new_block.pos = (grid_x, grid_y)
@@ -318,6 +428,10 @@ def place_block(pos):
                     health = 9
                 elif selected_block == "flag":
                     health = 1
+                elif selected_block == "obsidian":
+                    health = 14
+                elif selected_block == "rug":
+                    health = 2
 
                 placed_blocks.append({
                     "actor": new_block,
@@ -327,6 +441,8 @@ def place_block(pos):
 
 def delete_block(pos):
     global woodcount, stoneblockcount, metalblockcount, flagcount, placedwood, placedstone, placedmetal, placedflagcount
+    global obsidianblockcount, rugblockcount, placedobsidian, placedrug
+    global placed_blocks
     x, y = pos
     for block in placed_blocks:
         if block["actor"].collidepoint(pos):
@@ -343,16 +459,23 @@ def delete_block(pos):
             elif img == "flag":
                 flagcount += 1
                 placedflagcount -= 1
+            elif img == "obsidianblock":
+                obsidianblockcount += 1
+                placedobsidian -= 1
+            elif img == "rugblock":
+                rugblockcount += 1
+                placedrug -= 1
             placed_blocks.remove(block)
             break
         
 def restart_game():
     global number_of_rocks, money, sail_clicked_fun, music_playing, game_over
-    global rock, treasurechest, placed_blocks, missed_rocks
+    global rock, treasurechest, placed_blocks, missed_rocks, rock2, meteor
     number_of_rocks = 0    
     sail_clicked_fun = False
     music_playing = False    
     missed_rocks = 0
+    rock2.x = 1500  # Reset rock2 position
     rock.x = 1100 # Reset rock position  
     treasurechest.pos = (1600, 400)  # Reset treasure chest position
     save_game()  # Save the game state before restarting 
@@ -361,18 +484,24 @@ def restart_game():
     
 def save_game():
     global woodcount, stoneblockcount, metalblockcount, flagcount, money, placedwood, placedstone, placedmetal, placedflagcount
+    global obsidianblockcount, rugblockcount, placedobsidian, placedrug, level
     data = {
         "wood": woodcount + placedwood,
         "stone": stoneblockcount + placedstone,
         "metal": metalblockcount + placedmetal,
         "flag": flagcount + placedflagcount,
-        "money": money
+        "obsidian": obsidianblockcount + placedobsidian,
+        "rug": rugblockcount + placedrug,
+        # Save the current money
+        "money": money,
+        "level": level
     }
     with open("save_data.json", "w") as f:
         json.dump(data, f)
 
 def load_game():
-    global woodcount, stoneblockcount, metalblockcount, flagcount, money, load_game_once, placedwood, placedstone, placedmetal, placedflagcount    
+    global woodcount, stoneblockcount, metalblockcount, flagcount, money, load_game_once, placedwood, placedstone, placedmetal, placedflagcount
+    global obsidianblockcount, rugblockcount, placedobsidian, placedrug, level    
     load_game_once = True
     try:
         with open("save_data.json", "r") as f:
@@ -381,7 +510,11 @@ def load_game():
             stoneblockcount = data.get("stone", 0)
             metalblockcount = data.get("metal", 0)
             flagcount = data.get("flag", 0)
+            obsidianblockcount = data.get("obsidian", 0)
+            rugblockcount = data.get("rug", 0)
             money = data.get("money", 0)
+            level = data.get("level", 0)
+            
     except FileNotFoundError:
         pass  # No save file yet
         
