@@ -119,6 +119,7 @@ def draw():
                 exit.draw() #draw exit button
                 if level >1:
                     rock2.draw()
+                    meteor.draw()
             for block in placed_blocks:
                 block["actor"].draw()
 
@@ -270,16 +271,22 @@ def update():
                         # Refill the count based on block type
                         if block["type"] == "wood":
                             woodcount += 1
+                            placedwood -= 1
                         elif block["type"] == "stone":
                             stoneblockcount += 1
+                            placedstone -= 1
                         elif block["type"] == "metal":
                             metalblockcount += 1
+                            placedmetal -= 1
                         elif block["type"] == "flag":
                             flagcount += 1
+                            placedflagcount -= 1
                         elif block["type"] == "obsidian":
                             obsidianblockcount += 1
+                            placedobsidian -= 1
                         elif block["type"] == "rug":
                             rugblockcount += 1
+                            placedrug -= 1
                         placed_blocks.remove(block)
                     # Rock hit something, reset
                     rock.x = 1100
@@ -315,16 +322,22 @@ def update():
                             # Refill the count based on block type
                             if block["type"] == "wood":
                                 woodcount += 1
+                                placedwood -= 1
                             elif block["type"] == "stone":
                                 stoneblockcount += 1
+                                placedstone -= 1
                             elif block["type"] == "metal":
                                 metalblockcount += 1
+                                placedmetal -= 1
                             elif block["type"] == "flag":
                                 flagcount += 1
+                                placedflagcount -= 1
                             elif block["type"] == "obsidian":
                                 obsidianblockcount += 1
+                                placedobsidian -= 1
                             elif block["type"] == "rug":
                                 rugblockcount += 1
+                                placedrug -= 1
                             placed_blocks.remove(block)
                         # Rock hit something, reset
                         rock2.x = 1500
@@ -345,7 +358,45 @@ def update():
                         rock2.y = 550  # Lower range
                 else:   
                     rock2.y = randint(390, 550)
-            
+
+            if meteor.bottom < HEIGHT:
+                meteor.y += 7
+                meteor.x -= 3
+                for block in placed_blocks[:]:
+                    if meteor.colliderect(block["actor"]):
+                        block["health"] -= 2
+                        if block["health"] <= 0:
+                            # Refill the count based on block type
+                            if block["type"] == "wood":
+                                woodcount += 1
+                                placedwood -= 1
+                            elif block["type"] == "stone":
+                                stoneblockcount += 1
+                                placedstone -= 1
+                            elif block["type"] == "metal":
+                                metalblockcount += 1
+                                placedmetal -= 1
+                            elif block["type"] == "flag":
+                                flagcount += 1
+                                placedflagcount -= 1
+                            elif block["type"] == "obsidian":
+                                obsidianblockcount += 1
+                                placedobsidian -= 1
+                            elif block["type"] == "rug":
+                                rugblockcount += 1
+                                placedrug -= 1
+                            placed_blocks.remove(block)
+                        # Rock hit something, reset
+                        meteor.pos = (randint(600, 1000), -100)
+                        number_of_rocks += 1
+                        missed_rocks = 0
+                        money += 24
+                        break
+            else:
+                meteor.pos = (randint(600, 1000), -100)
+                number_of_rocks += 1
+                money += 24 
+                
          # Check if the flag is broken
         flag_broken = not any(block["type"] == "flag" for block in placed_blocks)
 
