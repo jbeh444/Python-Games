@@ -266,7 +266,7 @@ def update():
         load_game()  # Load game state at the start 
     if sail_clicked_fun:
         
-        if rock.right > 0:        
+        if rock.left > 0:        
             rock.x -= 5
             
             for block in placed_blocks[:]:
@@ -318,7 +318,7 @@ def update():
             money += 8
             
         if level > 1:
-            if rock2.right > 0:
+            if rock2.left > 0:
                 rock2.x -= 5
                 for block in placed_blocks[:]:
                     if rock2.colliderect(block["actor"]):
