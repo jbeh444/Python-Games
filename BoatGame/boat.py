@@ -34,6 +34,9 @@ sail.pos = 900, 200
 play = Actor("play")       # type: ignore  # noqa: F821
 play.pos = 500, 257
 
+levels = Actor("levels")     # type: ignore  # noqa: F821
+levels.pos = 900, 400
+
 exit = Actor("exit")       # type: ignore  # noqa: F821
 exit.pos = 500, 200
 
@@ -188,9 +191,13 @@ def draw():
             
             screen.draw.text("Rug:", (375, 160), color="black", fontsize=20) # type: ignore  # noqa: F821
             screen.draw.text(str(rugblockcount), (385, 180), color="black", fontsize=20) # type: ignore  # noqa: F821
+            
+            screen.draw.text("Level: ", (820, 445), color="black", fontsize=20) # type: ignore  # noqa: F821
+            screen.draw.text(str(level), (860, 445), color="black", fontsize=20) # type: ignore  # noqa: F821
 
             sail.draw()
             shop.draw()
+            levels.draw()
     else:
         play.draw()
     
@@ -204,6 +211,8 @@ def on_mouse_down(pos, button):
                 sail_clicked()
             elif shop.collidepoint(pos):
                 open_shop_menu()
+            elif levels.collidepoint(pos):
+                open_levels_menu()  # Assuming you have a function to handle levels
             elif play.collidepoint(pos) and not sail_clicked_fun:
                 playing = True
             elif woodblock.collidepoint(pos):
@@ -256,7 +265,12 @@ def sail_clicked():
         music.play("vanishing-horizon") # type: ignore  # noqa: F821
         music_playing = True
 
-        
+def open_levels_menu():
+    global level
+    # Here you can implement the logic to open a levels menu
+    # For now, let's just print the current level
+    print(f"Current Level: {level}")
+    # You can add more functionality here to change levels or display level information       
         
 def update():
     global rock, number_of_rocks, treasurechest, sail_clicked_fun, money, music_playing, sail_clicked_fun
@@ -420,7 +434,7 @@ def update():
                 # Check if the treasure chest collides with any placed blocks
                 for block in placed_blocks[:]:
                     if treasurechest.colliderect(block["actor"]):
-                        money += 1000
+                        money += 1000 * level
                         level += 1
                         treasurechest.pos = (-200, 400)
                         restart_game()
@@ -428,7 +442,7 @@ def update():
                 
                 else:
                     if treasurechest.left < 0:
-                        money += 1000
+                        money += 1000 * level
                         level += 1
                         treasurechest.pos = (-200, 400)
                         restart_game()
