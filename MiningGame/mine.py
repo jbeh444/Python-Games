@@ -138,20 +138,12 @@ def update():
                 inventory[tile.image] += 1
                 mined_positions.append(tile.pos)
                 print(f"Mined block at {tile.pos}")
-
-                # Check if all blocks are mined
-                if all(len(row) == 0 for row in dirt_tiles):
-                    print("All blocks mined — resetting terrain")
-                    dirt_tiles.clear()
-                    mined_positions.clear()
-                return  # Exit after mining one block to avoid multiple removals per frame
+                return  
 
     for block in mined_blocks[:]:
         block.y -= 3
         if block.y < -50:
             mined_blocks.remove(block)
-
-   
 
 def on_mouse_down(pos, button):
     global playing
@@ -159,46 +151,6 @@ def on_mouse_down(pos, button):
         if play.collidepoint(pos):
             print("Play button clicked")
             playing = True
-    # else:
-    #     for row_index, row in enumerate(dirt_tiles):
-    #         for col_index, tile in enumerate(row):
-    #             if tile.collidepoint(pos):
-    #                 # Check if there's a tile below using position-based logic
-    #                 # if is_block_below(tile):
-    #                 #     print("Cannot mine: block below")
-    #                 #     return
-
-    #                 # Mine the tile
-    #                 mined = Actor(tile.image)
-    #                 mined.pos = tile.pos
-    #                 mined_blocks.append(mined)
-    #                 row.remove(tile)
-    #                 inventory[tile.image] += 1
-    #                 mined_positions.append(tile.pos)
-    #                 print(f"Mined block at {tile.pos}")
-
-    #                 # Check if all blocks are mined
-    #                 if all(len(row) == 0 for row in dirt_tiles):
-    #                     print("All blocks mined — resetting terrain")
-    #                     dirt_tiles.clear()
-    #                     mined_positions.clear()
-
-                        # # Rebuild bottom row
-                        # initial_offset = 35
-                        # row_y = HEIGHT - dirt_width + initial_offset
-                        # new_row = []
-                        # for x in range(0, WIDTH, dirt_width):
-                        #     block_type = choose_block()
-                        #     tile = Actor(block_type)
-                        #     tile.pos = (x + dirt_width // 2, row_y)
-                        #     new_row.append(tile)
-                        # dirt_tiles.append(new_row)
-
-                    # return
-
-
-
-
                
 def on_key_down(key):
     global playing, dirt_tiles, mined_blocks, dirt_width, WIDTH
