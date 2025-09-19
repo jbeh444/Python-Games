@@ -1,92 +1,81 @@
 import pgzrun
 from random import randint
-import json
-import os
 import pygame
 
 WIDTH = 1050
 HEIGHT = 630
-x, y = 35, 595
+dirt_width = 70
+
 # ----------------------------
-# Actor Initialization
+# Block Class
+# ----------------------------
+class Block:
+    def __init__(self, block_type, pos, health):
+        self.actor = Actor(block_type)
+        self.actor.pos = pos
+        self.health = health
+        self.type = block_type
+
 # ----------------------------
 # UI Elements
-play = Actor("play")       # type: ignore  # noqa: F821
+# ----------------------------
+play = Actor("play")
 play.pos = 525, 315
-dirt = Actor("dirt")       # type: ignore  # noqa: F821
-dirt.pos = x, y
-drill = Actor("drill")  # Make sure drill.png is in your images folder
+drill = Actor("drill")
 
 # ----------------------------
 # Game State Variables
 # ----------------------------
 playing = False
 inventory = {
-    "dirt": 0,
-    "gold": 0,
-    "gold2": 0,
-    "gold3": 0,
-    "diamond": 0,
-    "diamond2": 0,
-    "diamond3": 0,
-    "coal": 0,    
-    "stone": 0,
-    "bedrock": 0
+    "dirt": 0, "gold": 0, "gold2": 0, "gold3": 0,
+    "diamond": 0, "diamond2": 0, "diamond3": 0,
+    "coal": 0, "stone": 0, "bedrock": 0
 }
-mined_blocks = []  # Stores Actor objects that were mined
+mined_blocks = []
+mined_positions = []
+
+# Block types with weights and health
 block_types = [
-    ("dirt", 50),
-    ("stone", 20),
-    ("coal", 10),    
-    ("gold", 6),
-    ("gold2", 6),
-    ("gold3", 6),
-    ("diamond", 4),
-    ("diamond2", 4),
-    ("diamond3", 4),
-    ("bedrock", 2)
+    ("dirt", 50, 10), ("stone", 20, 20), ("coal", 10, 20),
+    ("gold", 6, 10), ("gold2", 6, 20), ("gold3", 6, 30),
+    ("diamond", 4, 10), ("diamond2", 4, 20), ("diamond3", 4, 30),
+    ("bedrock", 2, 30)
 ]
+
 # ----------------------------
 # Dirt Tile Setup
 # ----------------------------
 dirt_tiles = []
-dirt_width = 70
-mined_positions = []  # Stores (x, y) tuples of mined tiles
-
-# Place the first row using the same logic as DOWN key
-initial_offset = 35  # Push tiles 35 pixels lower
+initial_offset = 35
 initial_row_y = HEIGHT - dirt_width + initial_offset
-
 first_row = []
+
 for x in range(0, WIDTH, dirt_width):
-    tile = Actor("dirt")
-    tile.pos = (x + dirt_width // 2, initial_row_y)
+    block_type, _, health = next(bt for bt in block_types if bt[0] == "dirt")
+    tile = Block(block_type, (x + dirt_width // 2, initial_row_y), health)
     first_row.append(tile)
 dirt_tiles.append(first_row)
-# ----------------------------
-# Gameplay Mechanics
-# ----------------------------
 
+# ----------------------------
+# Drawing
+# ----------------------------
 def draw():
-    screen.clear() #type: ignore 
+    screen.clear()
     if not playing:
         play.draw()
     else:
-        screen.fill((0, 0, 0)) #type: ignore        
-        
+        screen.fill((0, 0, 0))
         for row in dirt_tiles:
-            for tile in row:
-                tile.draw()
-
+            for block in row:
+                block.actor.draw()
         for block in mined_blocks:
             block.draw()
-
         drill.draw()
-        row_length = (len(inventory) + 1) // 2  # Split items roughly evenly across 2 rows
-        x_start = 10
-        y_start = 10
-        x_spacing = 150
-        y_spacing = 40
+
+        row_length = (len(inventory) + 1) // 2
+        x_start, y_start = 10, 10
+        x_spacing, y_spacing = 150, 40
 
         for i, (block_type, count) in enumerate(inventory.items()):
             row = i // row_length
@@ -95,108 +84,73 @@ def draw():
             y = y_start + row * y_spacing
             screen.draw.text(f"{block_type.capitalize()}: {count}", topleft=(x, y), fontsize=30, color="white")
 
-def is_block_below(tile):
-    for row in dirt_tiles:
-        for other in row:
-            # Check if there's a tile directly below
-            same_column = abs(other.x - tile.x) < dirt_width
-            directly_below = abs(other.y - (tile.y + dirt_width)) < 5
-            if same_column and directly_below:
-                return True
-    return False
-
-def find_lowest_empty_row():
-    for i in range(len(dirt_tiles)):
-        if len(dirt_tiles[i]) == 0:
-            return i
-    return len(dirt_tiles)  # If no empty row, place on top
-
-def find_highest_non_empty_row():
-    for i in reversed(range(len(dirt_tiles))):
-        if len(dirt_tiles[i]) > 0:
-            return i
-    return None  # No non-empty rows found
-
-
+# ----------------------------
+# Update
+# ----------------------------
 def update():
     mouse_x, mouse_y = pygame.mouse.get_pos()
     drill.pos = (mouse_x, mouse_y - 175)
-    # Assuming drill is an Actor
-    for row_index, row in enumerate(dirt_tiles):
-        for col_index, tile in enumerate(row):
-            if drill.colliderect(tile):
-                # Optional: check if there's a tile below
-                # if is_block_below(tile):
-                #     print("Cannot mine: block below")
-                #     return
 
-                # Mine the tile
-                mined = Actor(tile.image)
-                mined.pos = tile.pos
-                mined_blocks.append(mined)
-                row.remove(tile)
-                inventory[tile.image] += 1
-                mined_positions.append(tile.pos)
-                print(f"Mined block at {tile.pos}")
-                return  
+    for row in dirt_tiles:
+        for block in row[:]:  # Copy to avoid modification during iteration
+            if drill.colliderect(block.actor):
+                block.health -= 1
+                if block.health <= 0:
+                    mined = Actor(block.type)
+                    mined.pos = block.actor.pos
+                    mined_blocks.append(mined)
+                    inventory[block.type] += 1
+                    mined_positions.append(block.actor.pos)
+                    row.remove(block)
+                    print(f"Mined block at {block.actor.pos}")
 
     for block in mined_blocks[:]:
         block.y -= 3
         if block.y < -50:
             mined_blocks.remove(block)
 
+# ----------------------------
+# Input Handling
+# ----------------------------
 def on_mouse_down(pos, button):
     global playing
-    if not playing:
-        if play.collidepoint(pos):
-            print("Play button clicked")
-            playing = True
-               
+    if not playing and play.collidepoint(pos):
+        print("Play button clicked")
+        playing = True
+
 def on_key_down(key):
-    global playing, dirt_tiles, mined_blocks, dirt_width, WIDTH
+    global playing, dirt_tiles, mined_blocks
     if not playing:
         return
     elif key == keys.DOWN:
         print("Down arrow key pressed")
         max_rows = (HEIGHT - 35) // dirt_width
 
-        # Shift all rows UP
         for row in dirt_tiles:
-            for tile in row:
-                tile.y -= dirt_width
-
-        # Shift mined positions UP
+            for block in row:
+                block.actor.y -= dirt_width
         for i in range(len(mined_positions)):
             x, y = mined_positions[i]
             mined_positions[i] = (x, y - dirt_width)
-
-        # Remove top row if we've exceeded max height
         if len(dirt_tiles) >= max_rows:
             dirt_tiles.pop(0)
 
-        # Add new row at the bottom
         row_y = HEIGHT - dirt_width + 35
         new_row = []
         for x in range(0, WIDTH, dirt_width):
             block_type = choose_block()
-            tile = Actor(block_type)
-            tile.pos = (x + dirt_width // 2, row_y)
+            _, _, health = next(bt for bt in block_types if bt[0] == block_type)
+            tile = Block(block_type, (x + dirt_width // 2, row_y), health)
             new_row.append(tile)
         dirt_tiles.append(new_row)
 
     elif key == keys.UP:
         print("Up arrow key pressed")
-
         if dirt_tiles:
-            # Remove bottom row
             dirt_tiles.pop()
-
-            # Shift remaining tiles DOWN
             for row in dirt_tiles:
-                for tile in row:
-                    tile.y += dirt_width
-
-            # Shift mined positions DOWN
+                for block in row:
+                    block.actor.y += dirt_width
             for i in range(len(mined_positions)):
                 x, y = mined_positions[i]
                 mined_positions[i] = (x, y + dirt_width)
@@ -204,29 +158,17 @@ def on_key_down(key):
     elif key == keys.ESCAPE:
         print("Escape key pressed, returning to main menu")
         playing = False
-    
+
+# ----------------------------
+# Helpers
+# ----------------------------
 def choose_block():
-    total = sum(weight for _, weight in block_types)
+    total = sum(weight for _, weight, _ in block_types)
     pick = randint(1, total)
     current = 0
-    for block, weight in block_types:
+    for block, weight, _ in block_types:
         current += weight
         if pick <= current:
             return block
 
-def count_visible_blocks():
-    counts = {
-        "dirt": 0,
-        "stone": 0,
-        "coal": 0,
-        "gold": 0,
-        "diamond": 0,
-        "bedrock": 0
-    }
-    for row in dirt_tiles:
-        for tile in row:
-            if tile.image in counts:
-                counts[tile.image] += 1
-    return counts
-                       
 pgzrun.go()
