@@ -15,6 +15,7 @@ class Block:
         self.actor.pos = pos
         self.health = health
         self.type = block_type
+        self.hit_delay = 0  # Cooldown for mining
 
 # ----------------------------
 # UI Elements
@@ -92,9 +93,12 @@ def update():
     drill.pos = (mouse_x, mouse_y - 175)
 
     for row in dirt_tiles:
-        for block in row[:]:  # Copy to avoid modification during iteration
-            if drill.colliderect(block.actor):
+        for block in row[:]:
+            if block.hit_delay > 0:
+                block.hit_delay -= 1
+            elif drill.colliderect(block.actor):
                 block.health -= 1
+                block.hit_delay = 5  # Delay mining for 10 frames
                 if block.health <= 0:
                     mined = Actor(block.type)
                     mined.pos = block.actor.pos
@@ -108,6 +112,29 @@ def update():
         block.y -= 3
         if block.y < -50:
             mined_blocks.remove(block)
+
+    # Auto-generate new row if all blocks are mined
+    if all_blocks_mined():
+        print("All blocks mined — auto generating new row")
+        max_rows = (HEIGHT - 35) // dirt_width
+
+        for row in dirt_tiles:
+            for block in row:
+                block.actor.y -= dirt_width
+        for i in range(len(mined_positions)):
+            x, y = mined_positions[i]
+            mined_positions[i] = (x, y - dirt_width)
+        if len(dirt_tiles) >= max_rows:
+            dirt_tiles.pop(0)
+
+        row_y = HEIGHT - dirt_width + 35
+        new_row = []
+        for x in range(0, WIDTH, dirt_width):
+            block_type = choose_block()
+            _, _, health = next(bt for bt in block_types if bt[0] == block_type)
+            tile = Block(block_type, (x + dirt_width // 2, row_y), health)
+            new_row.append(tile)
+        dirt_tiles.append(new_row)
 
 # ----------------------------
 # Input Handling
@@ -170,5 +197,8 @@ def choose_block():
         current += weight
         if pick <= current:
             return block
+
+def all_blocks_mined():
+    return all(len(row) == 0 for row in dirt_tiles)
 
 pgzrun.go()
