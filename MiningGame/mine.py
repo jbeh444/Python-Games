@@ -6,6 +6,7 @@ import math
 WIDTH = 1050
 HEIGHT = 630
 dirt_width = 70
+money = 0
 
 # ----------------------------
 # Block Class
@@ -27,9 +28,10 @@ drill = Actor("drill")
 
 # Orbiting items — clockwise orbit and outward-facing rotation
 orbit_items = [
-    {"actor": Actor("sword"), "angle": 0, "radius": 113, "speed": 5},
-    {"actor": Actor("wood"), "angle": 180, "radius": 90, "speed": 5}
+    {"actor": Actor("sword"), "angle": 0, "radius": 113, "speed": 5, "damage": 1},
+    {"actor": Actor("wood"), "angle": 180, "radius": 90, "speed": 5, "damage": 1}
 ]
+
 
 # ----------------------------
 # Game State Variables
@@ -42,6 +44,14 @@ inventory = {
 }
 mined_blocks = []
 mined_positions = []
+
+sell_prices = {
+    "dirt": 1, "stone": 2, "coal": 3,
+    "gold": 5, "gold2": 10, "gold3": 15,
+    "diamond": 8, "diamond2": 16, "diamond3": 24,
+    "bedrock": 50
+}
+
 
 block_types = [
     ("dirt", 50, 10), ("stone", 20, 20), ("coal", 10, 20),
@@ -73,15 +83,20 @@ def draw():
         play.draw()
     else:
         screen.fill((0, 0, 0))
+
+        # Draw blocks and drill
         for row in dirt_tiles:
             for block in row:
                 block.actor.draw()
         for block in mined_blocks:
             block.draw()
         drill.draw()
+
+        # Draw orbiting items
         for item in orbit_items:
             item["actor"].draw()
 
+        # Inventory display (left side)
         row_length = (len(inventory) + 1) // 2
         x_start, y_start = 10, 10
         x_spacing, y_spacing = 150, 40
@@ -91,7 +106,34 @@ def draw():
             col = i % row_length
             x = x_start + col * x_spacing
             y = y_start + row * y_spacing
-            screen.draw.text(f"{block_type.capitalize()}: {count}", topleft=(x, y), fontsize=30, color="white")
+
+            # Alternate colors for readability
+            color = "white" if i % 2 == 0 else "lightblue"
+            screen.draw.text(f"{block_type.capitalize()}: {count}", topleft=(x, y), fontsize=30, color=color)
+
+        # Top-right HUD
+        hud_x = WIDTH - 250
+        screen.draw.text(f"Drill Speed: {orbit_items[0]['speed']}", topleft=(hud_x, 10), fontsize=30, color="yellow")
+        screen.draw.text(f"Money: ${money}", topleft=(hud_x, 50), fontsize=30, color="lime")
+
+        # Upgrade info (below inventory, shifted up 50px)
+        upgrade_y_start = y_start + (row_length * y_spacing) - 80
+        sword_cost = orbit_items[0]["damage"] * 20
+        wood_cost = orbit_items[1]["damage"] * 15
+
+        screen.draw.text(f"Sword DMG: {orbit_items[0]['damage']} (Upgrade: ${sword_cost})",
+                         topleft=(x_start, upgrade_y_start), fontsize=30, color="red")
+        screen.draw.text(f"Wood DMG: {orbit_items[1]['damage']} (Upgrade: ${wood_cost})",
+                         topleft=(x_start, upgrade_y_start + 40), fontsize=30, color="orange")
+
+        # Instructions
+        screen.draw.text("Press 'D' to upgrade Sword, 'F' to upgrade Wood",
+                         topleft=(x_start, upgrade_y_start + 80), fontsize=28, color="gray")
+        screen.draw.text("Press 'S' to sell inventory",
+                         topleft=(x_start, upgrade_y_start + 115), fontsize=30, color="cyan")
+        screen.draw.text("Press UP/DOWN to add/remove rows, ESC to return to menu",
+                         topleft=(x_start, upgrade_y_start + 150), fontsize=24, color="lightgray")
+        
 
 # ----------------------------
 # Update
@@ -136,7 +178,7 @@ def update():
             for block in row[:]:
                 if orbit_actor.colliderect(block.actor):
                     if block.hit_delay == 0:
-                        block.health -= 1
+                        block.health -= item["damage"]
                         block.hit_delay = 5
                         if block.health <= 0:
                             mined = Actor(block.type)
@@ -222,6 +264,46 @@ def on_key_down(key):
     elif key == keys.ESCAPE:
         print("ESCAPE key pressed — returning to menu")
         playing = False
+
+    elif key == keys.KP_PLUS or key == keys.KP_EQUALS:  # Handle both + and = keys
+        print("PLUS key pressed — increasing orbit speed")
+        for item in orbit_items:
+            item["speed"] += 1
+
+    elif key == keys.KP_MINUS:
+        print("MINUS key pressed — decreasing orbit speed")
+        for item in orbit_items:
+            item["speed"] = max(1, item["speed"] - 1)
+    
+    elif key == keys.S:
+        print("S key pressed — selling inventory")
+        global money
+        for block_type, count in inventory.items():
+            price = sell_prices.get(block_type, 0)
+            money += price * count
+            inventory[block_type] = 0
+        print(f"Total money: ${money}")
+    
+    elif key == keys.D:
+        current_dmg = orbit_items[0]["damage"]
+        cost = current_dmg * 15  # e.g., $15 per damage level
+        if money >= cost:
+            money -= cost
+            orbit_items[0]["damage"] += 1
+            print(f"Sword upgraded! Damage: {orbit_items[0]['damage']}, Cost: ${cost}, Money left: ${money}")
+        else:
+            print(f"Not enough money. Sword upgrade costs ${cost}, but you have ${money}.")
+
+    elif key == keys.F:
+        current_dmg = orbit_items[1]["damage"]
+        cost = current_dmg * 15  # e.g., $15 per damage level
+        if money >= cost:
+            money -= cost
+            orbit_items[1]["damage"] += 1
+            print(f"Wood upgraded! Damage: {orbit_items[1]['damage']}, Cost: ${cost}, Money left: ${money}")
+        else:
+            print(f"Not enough money. Wood upgrade costs ${cost}, but you have ${money}.")
+
 
 # ----------------------------
 # Helpers
