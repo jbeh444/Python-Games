@@ -1,6 +1,7 @@
 import pgzrun
 from random import randint
 import pygame
+import math
 
 WIDTH = 1050
 HEIGHT = 630
@@ -15,7 +16,7 @@ class Block:
         self.actor.pos = pos
         self.health = health
         self.type = block_type
-        self.hit_delay = 0  # Cooldown for mining
+        self.hit_delay = 0
 
 # ----------------------------
 # UI Elements
@@ -23,6 +24,12 @@ class Block:
 play = Actor("play")
 play.pos = 525, 315
 drill = Actor("drill")
+
+# Orbiting items — clockwise orbit and outward-facing rotation
+orbit_items = [
+    {"actor": Actor("sword"), "angle": 0, "radius": 113, "speed": 5},
+    {"actor": Actor("wood"), "angle": 180, "radius": 90, "speed": 5}
+]
 
 # ----------------------------
 # Game State Variables
@@ -36,7 +43,6 @@ inventory = {
 mined_blocks = []
 mined_positions = []
 
-# Block types with weights and health
 block_types = [
     ("dirt", 50, 10), ("stone", 20, 20), ("coal", 10, 20),
     ("gold", 6, 10), ("gold2", 6, 20), ("gold3", 6, 30),
@@ -73,6 +79,8 @@ def draw():
         for block in mined_blocks:
             block.draw()
         drill.draw()
+        for item in orbit_items:
+            item["actor"].draw()
 
         row_length = (len(inventory) + 1) // 2
         x_start, y_start = 10, 10
@@ -90,15 +98,29 @@ def draw():
 # ----------------------------
 def update():
     mouse_x, mouse_y = pygame.mouse.get_pos()
+
+    # Drill always follows mouse with fixed offset
     drill.pos = (mouse_x, mouse_y - 175)
 
+    # Orbit around mouse position — clockwise
+    for item in orbit_items:
+        item["angle"] += item["speed"]
+        angle_rad = math.radians(item["angle"])
+        dx = math.cos(angle_rad) * item["radius"]
+        dy = math.sin(angle_rad) * item["radius"]
+        item["actor"].pos = (mouse_x + dx, mouse_y + dy - 45)
+
+        # Restore smooth 360° rotation
+        item["actor"].angle = -item["angle"] + 270
+
+    # Drill mining
     for row in dirt_tiles:
         for block in row[:]:
             if block.hit_delay > 0:
                 block.hit_delay -= 1
             elif drill.colliderect(block.actor):
                 block.health -= 1
-                block.hit_delay = 5  # Delay mining for 10 frames
+                block.hit_delay = 5
                 if block.health <= 0:
                     mined = Actor(block.type)
                     mined.pos = block.actor.pos
@@ -106,16 +128,32 @@ def update():
                     inventory[block.type] += 1
                     mined_positions.append(block.actor.pos)
                     row.remove(block)
-                    print(f"Mined block at {block.actor.pos}")
 
+    # Orbit item mining
+    for item in orbit_items:
+        orbit_actor = item["actor"]
+        for row in dirt_tiles:
+            for block in row[:]:
+                if orbit_actor.colliderect(block.actor):
+                    if block.hit_delay == 0:
+                        block.health -= 1
+                        block.hit_delay = 5
+                        if block.health <= 0:
+                            mined = Actor(block.type)
+                            mined.pos = block.actor.pos
+                            mined_blocks.append(mined)
+                            inventory[block.type] += 1
+                            mined_positions.append(block.actor.pos)
+                            row.remove(block)
+
+    # Animate mined blocks
     for block in mined_blocks[:]:
         block.y -= 3
         if block.y < -50:
             mined_blocks.remove(block)
 
-    # Auto-generate new row if all blocks are mined
+    # Auto-generate new row
     if all_blocks_mined():
-        print("All blocks mined — auto generating new row")
         max_rows = (HEIGHT - 35) // dirt_width
 
         for row in dirt_tiles:
@@ -142,7 +180,6 @@ def update():
 def on_mouse_down(pos, button):
     global playing
     if not playing and play.collidepoint(pos):
-        print("Play button clicked")
         playing = True
 
 def on_key_down(key):
@@ -150,7 +187,7 @@ def on_key_down(key):
     if not playing:
         return
     elif key == keys.DOWN:
-        print("Down arrow key pressed")
+        print("DOWN key pressed — adding new row")
         max_rows = (HEIGHT - 35) // dirt_width
 
         for row in dirt_tiles:
@@ -172,7 +209,7 @@ def on_key_down(key):
         dirt_tiles.append(new_row)
 
     elif key == keys.UP:
-        print("Up arrow key pressed")
+        print("UP key pressed — removing bottom row")
         if dirt_tiles:
             dirt_tiles.pop()
             for row in dirt_tiles:
@@ -183,7 +220,7 @@ def on_key_down(key):
                 mined_positions[i] = (x, y + dirt_width)
 
     elif key == keys.ESCAPE:
-        print("Escape key pressed, returning to main menu")
+        print("ESCAPE key pressed — returning to menu")
         playing = False
 
 # ----------------------------
