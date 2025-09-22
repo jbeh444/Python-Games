@@ -29,9 +29,14 @@ drill = Actor("drill")
 # Orbiting items — clockwise orbit and outward-facing rotation
 orbit_items = [
     {"actor": Actor("sword"), "angle": 0, "radius": 113, "speed": 5, "damage": 1},
-    {"actor": Actor("wood"), "angle": 180, "radius": 90, "speed": 5, "damage": 1}
+    {"actor": Actor("wood"), "angle": 180, "radius": 90, "speed": 5, "damage": 1},
+    {"actor": Actor("pickaxe"), "angle": 90, "radius": 70, "speed": 5, "damage": 1}
 ]
 
+# Initialization (if not already present)
+for item in orbit_items:
+    if "max_paid_speed" not in item:
+        item["max_paid_speed"] = item["speed"]
 
 # ----------------------------
 # Game State Variables
@@ -99,7 +104,7 @@ def draw():
         # Inventory display (left side)
         row_length = (len(inventory) + 1) // 2
         x_start, y_start = 10, 10
-        x_spacing, y_spacing = 150, 40
+        x_spacing, y_spacing = 150, 30
 
         for i, (block_type, count) in enumerate(inventory.items()):
             row = i // row_length
@@ -114,26 +119,37 @@ def draw():
         # Top-right HUD
         hud_x = WIDTH - 250
         screen.draw.text(f"Drill Speed: {orbit_items[0]['speed']}", topleft=(hud_x, 10), fontsize=30, color="yellow")
-        screen.draw.text(f"Money: ${money}", topleft=(hud_x, 50), fontsize=30, color="lime")
+        screen.draw.text(f"Money: ${money}", topleft=(hud_x, 40), fontsize=30, color="lime")
 
         # Upgrade info (below inventory, shifted up 50px)
-        upgrade_y_start = y_start + (row_length * y_spacing) - 80
-        sword_cost = orbit_items[0]["damage"] * 20
+        upgrade_y_start = y_start + (row_length * y_spacing) - 60
+        sword_cost = orbit_items[0]["damage"] * 15
         wood_cost = orbit_items[1]["damage"] * 15
+        pickaxe_cost = orbit_items[2]["damage"] * 15
+        Drill_Speed_Cost = (orbit_items[0]["speed"] + 1) * 5  # Next speed cost
+         # Shifted up by 20 pixels
+         # Shifted up by 20 pixels
 
         screen.draw.text(f"Sword DMG: {orbit_items[0]['damage']} (Upgrade: ${sword_cost})",
                          topleft=(x_start, upgrade_y_start), fontsize=30, color="red")
         screen.draw.text(f"Wood DMG: {orbit_items[1]['damage']} (Upgrade: ${wood_cost})",
-                         topleft=(x_start, upgrade_y_start + 40), fontsize=30, color="orange")
+                         topleft=(x_start, upgrade_y_start + 20), fontsize=30, color="orange")
+        screen.draw.text(f"Pickaxe DMG: {orbit_items[2]['damage']} (Upgrade: ${pickaxe_cost})",
+                         topleft=(x_start , upgrade_y_start-20), fontsize=30, color="blue")
+        screen.draw.text(f"Next Drill Speed Upgrade: ${Drill_Speed_Cost}",
+                         topleft=(x_start, upgrade_y_start+40), fontsize=30, color="yellow")
 
         # Instructions
-        screen.draw.text("Press 'D' to upgrade Sword, 'F' to upgrade Wood",
-                         topleft=(x_start, upgrade_y_start + 80), fontsize=28, color="gray")
+        screen.draw.text("Press 'D' to upgrade Sword, 'F' to upgrade Wood, Press 'G' to upgrade Pickaxe",
+                         topleft=(x_start, upgrade_y_start + 60), fontsize=28, color="gray")
         screen.draw.text("Press 'S' to sell inventory",
-                         topleft=(x_start, upgrade_y_start + 115), fontsize=30, color="cyan")
-        screen.draw.text("Press UP/DOWN to add/remove rows, ESC to return to menu",
-                         topleft=(x_start, upgrade_y_start + 150), fontsize=24, color="lightgray")
-        
+                         topleft=(x_start, upgrade_y_start + 80), fontsize=28, color="green")
+        screen.draw.text("Press +/- to adjust drill speed",
+                    topleft=(x_start, upgrade_y_start + 100), fontsize=28, color="lightgray")
+        screen.draw.text("Press UP/DOWN to add/remove rows",
+                         topleft=(x_start, upgrade_y_start + 120), fontsize=24, color="lightgray")
+        screen.draw.text("Press ESC to return to menu",
+                         topleft=(x_start, upgrade_y_start + 140), fontsize=24, color="lightgray")
 
 # ----------------------------
 # Update
@@ -269,18 +285,30 @@ def on_key_down(key):
         print("PLUS key pressed — attempting to increase orbit speed")
 
         total_cost = 0
+        upgrade_costs = []
+
         for item in orbit_items:
-            cost = item["speed"] * 5
+            next_speed = item["speed"] + 1
+            # Only charge if next speed exceeds both 5 and max_paid_speed
+            if next_speed > 5 and next_speed > item["max_paid_speed"]:
+                cost = next_speed * 5
+            else:
+                cost = 0
+            upgrade_costs.append(cost)
             total_cost += cost
+
         if money >= total_cost:
             money -= total_cost
-            for item in orbit_items:
+            for i, item in enumerate(orbit_items):
+                prev_speed = item["speed"]
                 item["speed"] += 1
-                print(f"{item['speed'] - 1} → {item['speed']} speed upgraded")
+                # Update max_paid_speed if we paid for this upgrade
+                if upgrade_costs[i] > 0:
+                    item["max_paid_speed"] = item["speed"]
+                print(f"{prev_speed} → {item['speed']} speed upgraded")
             print(f"Total cost: ${total_cost}, Money left: ${money}")
         else:
             print(f"Not enough money. Total cost to upgrade all orbit items: ${total_cost}, Money: ${money}")
-
 
     elif key == keys.KP_MINUS:
         print("MINUS key pressed — decreasing orbit speed")
@@ -316,8 +344,16 @@ def on_key_down(key):
         else:
             print(f"Not enough money. Wood upgrade costs ${cost}, but you have ${money}.")
 
-
-# ----------------------------
+    elif key == keys.G:
+        current_dmg = orbit_items[1]["damage"]
+        cost = current_dmg * 15  # e.g., $15 per damage level
+        if money >= cost:
+            money -= cost
+            orbit_items[2]["damage"] += 1
+            print(f"Pickaxe upgraded! Damage: {orbit_items[1]['damage']}, Cost: ${cost}, Money left: ${money}")
+        else:
+            print(f"Not enough money. Pickaxe upgrade costs ${cost}, but you have ${money}.")
+    # ----------------------------
 # Helpers
 # ----------------------------
 def choose_block():
