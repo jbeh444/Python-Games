@@ -225,7 +225,7 @@ def on_mouse_down(pos, button):
         playing = True
 
 def on_key_down(key):
-    global playing, dirt_tiles, mined_blocks
+    global playing, dirt_tiles, mined_blocks, money
     if not playing:
         return
     elif key == keys.DOWN:
@@ -265,10 +265,22 @@ def on_key_down(key):
         print("ESCAPE key pressed — returning to menu")
         playing = False
 
-    elif key == keys.KP_PLUS or key == keys.KP_EQUALS:  # Handle both + and = keys
-        print("PLUS key pressed — increasing orbit speed")
+    elif key == keys.KP_PLUS or key == keys.KP_EQUALS:
+        print("PLUS key pressed — attempting to increase orbit speed")
+
+        total_cost = 0
         for item in orbit_items:
-            item["speed"] += 1
+            cost = item["speed"] * 5
+            total_cost += cost
+        if money >= total_cost:
+            money -= total_cost
+            for item in orbit_items:
+                item["speed"] += 1
+                print(f"{item['speed'] - 1} → {item['speed']} speed upgraded")
+            print(f"Total cost: ${total_cost}, Money left: ${money}")
+        else:
+            print(f"Not enough money. Total cost to upgrade all orbit items: ${total_cost}, Money: ${money}")
+
 
     elif key == keys.KP_MINUS:
         print("MINUS key pressed — decreasing orbit speed")
@@ -277,7 +289,7 @@ def on_key_down(key):
     
     elif key == keys.S:
         print("S key pressed — selling inventory")
-        global money
+       
         for block_type, count in inventory.items():
             price = sell_prices.get(block_type, 0)
             money += price * count
