@@ -7,6 +7,7 @@ WIDTH, HEIGHT = 1200, 750
 FPS = 60
 
 BG_COLOR = (20, 22, 28)
+SKY_COLOR = (100, 160, 220)
 WATER_COLOR = (20, 80, 140)
 RED_TEAM = (230, 50, 50)
 BLUE_TEAM = (50, 130, 240)
@@ -21,6 +22,7 @@ CYAN = (40, 220, 230)
 
 GROUND_Y = 620
 WATER_LEVEL_Y = 580
+PLANE_ALTITUDE_Y = 180
 BLOCK_SIZE = 22
 
 # --- Particle System ---
@@ -123,7 +125,7 @@ class ControlledBallDrop:
             pygame.draw.circle(surface, color, (int(self.ball['x']), int(self.ball['y'])), 5)
 
 
-# --- Base Architecture with Shapes ---
+# --- Base Architecture ---
 
 class BaseBlock:
     def __init__(self, gx, gy, block_type='standard', shape='square', offset_y=0):
@@ -158,6 +160,16 @@ class BaseBlock:
             pygame.draw.polygon(surface, color, pts)
             pygame.draw.polygon(surface, BLACK, pts, 1)
 
+        elif self.shape == 'slope_down_left':
+            pts = [self.rect.topleft, self.rect.topright, self.rect.bottomright]
+            pygame.draw.polygon(surface, color, pts)
+            pygame.draw.polygon(surface, BLACK, pts, 1)
+
+        elif self.shape == 'slope_down_right':
+            pts = [self.rect.topleft, self.rect.topright, self.rect.bottomleft]
+            pygame.draw.polygon(surface, color, pts)
+            pygame.draw.polygon(surface, BLACK, pts, 1)
+
         elif self.shape == 'dome':
             pygame.draw.arc(surface, CYAN, self.rect, 0, math.pi, 3)
             pygame.draw.circle(surface, color, self.rect.center, 6)
@@ -181,6 +193,8 @@ class BreakableBase:
         self.start_gx = start_gx
         self.blocks = []
         self.has_core = True
+        self.is_collapsing = False
+        self.collapse_timer = 0
         self.missile_cooldown = 0
         self.build_shaped_structure()
 
@@ -218,7 +232,15 @@ class BreakableBase:
 
                 self.blocks.append(BaseBlock(gx, gy, b_type, shape))
 
-    def update_systems(self, enemy_mechs, projectiles, missiles):
+    def update_systems(self, enemy_mechs, projectiles, missiles, particles):
+        if self.is_collapsing:
+            self.collapse_timer += 1
+            if self.collapse_timer % 3 == 0 and self.blocks:
+                target_block = random.choice(self.blocks)
+                create_explosion(target_block.rect.centerx, target_block.rect.centery, particles, count=10, radius=25)
+                self.blocks.remove(target_block)
+            return
+
         for b in self.blocks:
             if b.is_gun:
                 target_mech = next((m for m in enemy_mechs if m.deployed and m.parts), None)
@@ -251,6 +273,7 @@ class BreakableBase:
                 if block.hp <= 0:
                     if block.is_core:
                         self.has_core = False
+                        self.is_collapsing = True
                     create_explosion(block.rect.centerx, block.rect.centery, particles, count=15, radius=30)
                     self.blocks.remove(block)
         return hit
@@ -264,13 +287,12 @@ class Warship:
         self.start_gx = start_gx
         self.blocks = []
         self.has_core = True
-        self.is_sinking = False
-        self.sink_offset = 0
+        self.is_collapsing = False
+        self.collapse_timer = 0
         self.missile_cooldown = 0
         self.build_ship()
 
     def build_ship(self):
-        # 12 Wide x 5 High Warship design
         ship_layout = [
             "  A  T T  A ",
             " S  CCCC  S ",
@@ -304,17 +326,20 @@ class Warship:
                 self.blocks.append(BaseBlock(gx, gy, b_type, shape))
 
     def update_systems(self, enemy_mechs, projectiles, missiles, particles):
-        if self.is_sinking:
-            self.sink_offset += 0.8
+        if self.is_collapsing:
+            self.collapse_timer += 1
             for b in self.blocks:
                 b.rect.y += 0.8
+
+            if self.collapse_timer % 3 == 0 and self.blocks:
+                target_block = random.choice(self.blocks)
+                create_explosion(target_block.rect.centerx, target_block.rect.centery, particles, count=12, radius=25)
+                self.blocks.remove(target_block)
+
             if random.random() < 0.3:
                 rx = self.start_gx * BLOCK_SIZE + random.randint(0, 250)
                 ry = WATER_LEVEL_Y + random.randint(0, 40)
                 particles.append(Particle(rx, ry, CYAN, random.randint(3, 8), 20, vy=-1))
-
-            if self.sink_offset > 120:
-                self.blocks.clear()
             return
 
         for b in self.blocks:
@@ -349,8 +374,150 @@ class Warship:
                 if block.hp <= 0:
                     if block.is_core:
                         self.has_core = False
-                        self.is_sinking = True
+                        self.is_collapsing = True
                     create_explosion(block.rect.centerx, block.rect.centery, particles, count=18, radius=35)
+                    self.blocks.remove(block)
+        return hit
+
+
+# --- Flying Fortress (Plane Battle Mode) ---
+
+class PlaneBase:
+    def __init__(self, start_gx, team):
+        self.team = team
+        self.start_gx = start_gx
+        self.blocks = []
+        self.has_core = True
+        self.is_collapsing = False
+        self.collapse_timer = 0
+        self.fall_speed = 0.5
+        self.forward_speed = 1.5 if team == 'red' else -1.5
+        self.missile_cooldown = 0
+        self.build_plane()
+
+    def build_plane(self):
+        # Red plane faces right (nose right), Blue plane faces left (nose left)
+        if self.team == 'red':
+            plane_layout = [
+                "            V     ",
+                "          VVV     ",
+                "   D   S  FFF     ",
+                "WWWWWWWWWWWWWWWWN ",
+                "  EE   EE  FFFFNNN",
+                "            FFFF  ",
+                "                  "
+            ]
+        else:
+            plane_layout = [
+                "     V            ",
+                "     VVV          ",
+                "     FFF  S   D   ",
+                " NWWWWWWWWWWWWWWWW",
+                "NNNFFFF  EE   EE  ",
+                "  FFFF            ",
+                "                  "
+            ]
+
+        for y, row in enumerate(plane_layout):
+            for x, char in enumerate(row):
+                if char == ' ':
+                    continue
+                gx = self.start_gx + x
+                gy = (PLANE_ALTITUDE_Y // BLOCK_SIZE) + y
+
+                b_type = 'inner'
+                shape = 'square'
+
+                if char == 'N':  # Nose cone
+                    b_type = 'outer'
+                    if self.team == 'red':
+                        shape = 'slope_down_left' if y == 4 else 'slope_right'
+                    else:
+                        shape = 'slope_down_right' if y == 4 else 'slope_left'
+
+                elif char == 'D':  # Cockpit Dome
+                    shape = 'dome'
+                    b_type = 'decorative'
+
+                elif char == 'V':  # Vertical Tail Fin
+                    b_type = 'outer'
+                    if self.team == 'red':
+                        shape = 'slope_left'
+                    else:
+                        shape = 'slope_right'
+
+                elif char == 'W':  # Wings / Fuselage
+                    b_type = 'inner'
+
+                elif char == 'F':  # Core Fuselage Area
+                    if x == (12 if self.team == 'red' else 5) and y == 3:
+                        b_type = 'core'
+                    else:
+                        b_type = 'turret' if (x in [5, 14] if self.team == 'red' else x in [3, 12]) else 'inner'
+
+                elif char == 'S':  # Missile Silo
+                    b_type = 'silo'
+
+                elif char == 'E':  # Engine Nacelles
+                    b_type = 'outer'
+                    shape = 'slope_down_right' if self.team == 'red' else 'slope_down_left'
+
+                self.blocks.append(BaseBlock(gx, gy, b_type, shape))
+
+    def update_systems(self, enemy_mechs, projectiles, missiles, particles):
+        if self.is_collapsing:
+            self.collapse_timer += 1
+            self.fall_speed += 0.25
+
+            for b in self.blocks:
+                b.rect.y += self.fall_speed
+                b.rect.x += self.forward_speed
+
+            if self.collapse_timer % 2 == 0 and self.blocks:
+                target_block = random.choice(self.blocks)
+                create_explosion(target_block.rect.centerx, target_block.rect.centery, particles, count=14, radius=30)
+                if random.random() < 0.4:
+                    self.blocks.remove(target_block)
+
+            if self.blocks:
+                lead = self.blocks[0]
+                particles.append(Particle(lead.rect.centerx, lead.rect.centery, DARK_GRAY, random.randint(6, 12), 25))
+            return
+
+        for b in self.blocks:
+            if b.is_gun:
+                target_mech = next((m for m in enemy_mechs if m.deployed and m.parts), None)
+                if target_mech:
+                    b.angle = math.atan2(target_mech.y - b.rect.centery, target_mech.x - b.rect.centerx)
+                    b.shoot_cooldown += 1
+                    if b.shoot_cooldown >= 35:
+                        b.shoot_cooldown = 0
+                        projectiles.append(AimedProjectile(b.rect.centerx, b.rect.centery, b.angle, self.team, damage=14))
+
+        self.missile_cooldown += 1
+        if self.missile_cooldown >= 180:
+            silo_block = next((b for b in self.blocks if b.is_silo), None)
+            if silo_block:
+                self.missile_cooldown = 0
+                missiles.append(HomingMissile(silo_block.rect.centerx, silo_block.rect.top, self.team))
+
+    def draw(self, surface):
+        color = RED_TEAM if self.team == 'red' else BLUE_TEAM
+        for block in self.blocks:
+            block.draw(surface, color)
+
+    def damage_at(self, rect, amount, particles):
+        hit = False
+        for block in list(self.blocks):
+            if block.rect.colliderect(rect):
+                hit = True
+                block.hp -= amount
+                create_explosion(block.rect.centerx, block.rect.centery, particles, count=4, radius=12)
+                if block.hp <= 0:
+                    if block.is_core:
+                        self.has_core = False
+                        self.is_collapsing = True
+                    create_explosion(block.rect.centerx, block.rect.centery, particles, count=20, radius=35)
                     self.blocks.remove(block)
         return hit
 
@@ -403,7 +570,7 @@ class HomingMissile:
 
         if not target_x:
             target_x = enemy_base.start_gx * BLOCK_SIZE + 80
-            target_y = WATER_LEVEL_Y - 40
+            target_y = PLANE_ALTITUDE_Y if isinstance(enemy_base, PlaneBase) else (WATER_LEVEL_Y - 40)
 
         desired_angle = math.atan2(target_y - self.y, target_x - self.x)
         angle_diff = (desired_angle - self.angle + math.pi) % (2 * math.pi) - math.pi
@@ -428,8 +595,7 @@ class HomingMissile:
                 if b.hp <= 0:
                     if b.is_core:
                         enemy_base.has_core = False
-                        if hasattr(enemy_base, 'is_sinking'):
-                            enemy_base.is_sinking = True
+                        enemy_base.is_collapsing = True
                     enemy_base.blocks.remove(b)
 
     def draw(self, surface):
@@ -555,12 +721,16 @@ def run_game(mode="NORMAL"):
     font = pygame.font.SysFont(None, 20)
     large_font = pygame.font.SysFont(None, 60)
 
-    floor_y = WATER_LEVEL_Y - 22 if mode == "BOAT" else GROUND_Y
-
-    if mode == "BOAT":
+    if mode == "PLANE":
+        floor_y = GROUND_Y - 100
+        red_base = PlaneBase(start_gx=1, team='red')
+        blue_base = PlaneBase(start_gx=(WIDTH // BLOCK_SIZE) - 19, team='blue')
+    elif mode == "BOAT":
+        floor_y = WATER_LEVEL_Y - 22
         red_base = Warship(start_gx=1, team='red')
         blue_base = Warship(start_gx=(WIDTH // BLOCK_SIZE) - 13, team='blue')
     else:
+        floor_y = GROUND_Y
         red_base = BreakableBase(start_gx=1, team='red')
         blue_base = BreakableBase(start_gx=(WIDTH // BLOCK_SIZE) - 9, team='blue')
 
@@ -586,7 +756,7 @@ def run_game(mode="NORMAL"):
             if event.type == pygame.QUIT:
                 return False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                return True  # Restart current game mode
+                return True
 
         if not game_over:
             r_part = red_rand.update()
@@ -601,12 +771,8 @@ def run_game(mode="NORMAL"):
                     blue_mechs.append(Mech('blue', blue_zone, floor_y))
                 blue_mechs[-1].add_part(b_part)
 
-            if mode == "BOAT":
-                red_base.update_systems(blue_mechs, projectiles, missiles, particles)
-                blue_base.update_systems(red_mechs, projectiles, missiles, particles)
-            else:
-                red_base.update_systems(blue_mechs, projectiles, missiles)
-                blue_base.update_systems(red_mechs, projectiles, missiles)
+            red_base.update_systems(blue_mechs, projectiles, missiles, particles)
+            blue_base.update_systems(red_mechs, projectiles, missiles, particles)
 
             for m in list(missiles):
                 targets_mechs = blue_mechs if m.team == 'red' else red_mechs
@@ -642,30 +808,42 @@ def run_game(mode="NORMAL"):
                 if not m.parts:
                     blue_mechs.remove(m)
 
-            for p in list(particles):
-                p.update()
-                if p.lifetime <= 0:
-                    particles.remove(p)
-
             if not red_mechs or red_mechs[-1].deployed:
                 red_mechs.append(Mech('red', red_zone, floor_y))
             if not blue_mechs or blue_mechs[-1].deployed:
                 blue_mechs.append(Mech('blue', blue_zone, floor_y))
 
-            if not blue_base.has_core:
+            def base_fully_destroyed(base):
+                if not base.is_collapsing:
+                    return False
+                if len(base.blocks) == 0:
+                    return True
+                return all(b.rect.top > HEIGHT for b in base.blocks)
+
+            if base_fully_destroyed(blue_base):
                 game_over = True
                 winner = "RED"
-            elif not red_base.has_core:
+            elif base_fully_destroyed(red_base):
                 game_over = True
                 winner = "BLUE"
 
-        # Frame Render
-        screen.fill(BG_COLOR)
+        for p in list(particles):
+            p.update()
+            if p.lifetime <= 0:
+                particles.remove(p)
 
-        if mode == "BOAT":
+        if mode == "PLANE":
+            screen.fill(SKY_COLOR)
+            pygame.draw.circle(screen, WHITE, (200, 100), 40)
+            pygame.draw.circle(screen, WHITE, (240, 90), 50)
+            pygame.draw.circle(screen, WHITE, (850, 150), 45)
+            pygame.draw.circle(screen, WHITE, (900, 140), 55)
+        elif mode == "BOAT":
+            screen.fill(BG_COLOR)
             pygame.draw.rect(screen, WATER_COLOR, (0, WATER_LEVEL_Y, WIDTH, HEIGHT - WATER_LEVEL_Y))
             pygame.draw.line(screen, CYAN, (0, WATER_LEVEL_Y), (WIDTH, WATER_LEVEL_Y), 3)
         else:
+            screen.fill(BG_COLOR)
             pygame.draw.line(screen, GRAY, (0, GROUND_Y), (WIDTH, GROUND_Y), 4)
 
         red_base.draw(screen)
@@ -713,30 +891,35 @@ def main_menu():
     title_font = pygame.font.SysFont(None, 70)
     btn_font = pygame.font.SysFont(None, 40)
 
-    btn_normal = pygame.Rect(WIDTH // 2 - 150, 280, 300, 65)
-    btn_boat = pygame.Rect(WIDTH // 2 - 150, 380, 300, 65)
+    btn_normal = pygame.Rect(WIDTH // 2 - 150, 240, 300, 60)
+    btn_boat = pygame.Rect(WIDTH // 2 - 150, 330, 300, 60)
+    btn_plane = pygame.Rect(WIDTH // 2 - 150, 420, 300, 60)
 
     while True:
         screen.fill(BG_COLOR)
 
         title_lbl = title_font.render("MECH WARFARE", True, YELLOW)
-        screen.blit(title_lbl, (WIDTH // 2 - title_lbl.get_width() // 2, 130))
+        screen.blit(title_lbl, (WIDTH // 2 - title_lbl.get_width() // 2, 110))
 
         m_pos = pygame.mouse.get_pos()
 
-        # Normal Battle Button
         norm_color = RED_TEAM if btn_normal.collidepoint(m_pos) else DARK_GRAY
         pygame.draw.rect(screen, norm_color, btn_normal, border_radius=8)
         pygame.draw.rect(screen, WHITE, btn_normal, 2, border_radius=8)
         lbl1 = btn_font.render("Normal Battle", True, WHITE)
         screen.blit(lbl1, lbl1.get_rect(center=btn_normal.center))
 
-        # Boat Battle Button
         boat_color = BLUE_TEAM if btn_boat.collidepoint(m_pos) else DARK_GRAY
         pygame.draw.rect(screen, boat_color, btn_boat, border_radius=8)
         pygame.draw.rect(screen, WHITE, btn_boat, 2, border_radius=8)
         lbl2 = btn_font.render("Boat Battle", True, WHITE)
         screen.blit(lbl2, lbl2.get_rect(center=btn_boat.center))
+
+        plane_color = PURPLE if btn_plane.collidepoint(m_pos) else DARK_GRAY
+        pygame.draw.rect(screen, plane_color, btn_plane, border_radius=8)
+        pygame.draw.rect(screen, WHITE, btn_plane, 2, border_radius=8)
+        lbl3 = btn_font.render("Plane Battle", True, WHITE)
+        screen.blit(lbl3, lbl3.get_rect(center=btn_plane.center))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -748,6 +931,9 @@ def main_menu():
                         pass
                 elif btn_boat.collidepoint(event.pos):
                     while run_game("BOAT"):
+                        pass
+                elif btn_plane.collidepoint(event.pos):
+                    while run_game("PLANE"):
                         pass
 
         pygame.display.flip()
